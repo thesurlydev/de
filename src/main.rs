@@ -1,5 +1,5 @@
-use std::{env, fs};
 use std::process::Command;
+use std::{env, fs};
 
 fn template() -> &'static str {
     r#"
@@ -26,14 +26,14 @@ fn main() {
         link = format!("https://{}", link);
     }
 
-    let out = template().to_string()
-        .replace("{{NAME}}", &*name)
-        .replace("{{LINK}}", &*link)
-        ;
+    let out = template()
+        .to_string()
+        .replace("{{NAME}}", &name)
+        .replace("{{LINK}}", &link);
 
     let tmp_file = format!("/tmp/{}.desktop", &*name);
     let err_msg = format!("Unable to write file: {}", &*tmp_file);
-    fs::write(tmp_file.clone(), out).expect(&*err_msg);
+    fs::write(tmp_file.clone(), out).expect(&err_msg);
 
     let final_path = format!("/usr/share/applications/{}.desktop", &*name);
     let mv_args = ["mv", &*tmp_file, &*final_path];

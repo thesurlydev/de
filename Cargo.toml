@@ -2,7 +2,7 @@
 name = "desktop-entry"
 description = "Create desktop entries for a webpage, making them available via launcher"
 version = "0.5.0"
-edition = "2021"
+edition = "2024"
 authors = ["Shane Witbeck <shane@digitalsanctum.com>"]
 homepage = "https://github.com/digitalsanctum/de"
 readme = "README.md"
