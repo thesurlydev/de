@@ -16,21 +16,8 @@ permissions:
 
 jobs:
   build:
-    name: Build ${{ matrix.asset_name }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: ubuntu-latest
-            binary: desktop-entry
-            asset_name: de-linux
-          - os: macos-latest
-            binary: desktop-entry
-            asset_name: de-macos
-          - os: windows-latest
-            binary: desktop-entry.exe
-            asset_name: de-windows
+    name: Build de-linux
+    runs-on: ubuntu-latest
     steps:
       - name: Check out the release tag
         uses: actions/checkout@v7
@@ -44,14 +31,13 @@ jobs:
         run: cargo build --release --locked
 
       - name: Stage binary
-        shell: bash
-        run: cp "target/release/${{ matrix.binary }}" "${{ matrix.asset_name }}"
+        run: cp target/release/desktop-entry de-linux
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v7
         with:
-          name: ${{ matrix.asset_name }}
-          path: ${{ matrix.asset_name }}
+          name: de-linux
+          path: de-linux
           if-no-files-found: error
 
   publish:

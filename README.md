@@ -14,8 +14,7 @@ Linux only. The tool writes to `/usr/share/applications` and produces
 so it works on Linux desktops such as GNOME, KDE Plasma, XFCE, Cinnamon, and
 MATE.
 
-macOS and Windows are not supported. Release builds are still produced for
-those platforms, but they cannot create working launchers.
+macOS and Windows are not supported, and releases provide a Linux build only.
 
 ## Requirements
 
@@ -34,7 +33,7 @@ cargo install desktop-entry
 
 Or download a binary from the
 [releases page](https://github.com/thesurlydev/de/releases) and put it on your
-`PATH`. The `de-linux` asset is the one for Linux.
+`PATH`. Releases publish a single `de-linux` binary.
 
 ## Usage
 
@@ -95,7 +94,7 @@ tasks:
 ```sh
 mise run build   # cargo build --release
 mise run test    # cargo test
-mise run release # tag and push a release, then CI builds binaries and publishes the crate
+mise run release # tag and push a release, then CI builds the Linux binary and publishes the crate
 ```
 
 ## License
