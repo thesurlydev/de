@@ -1,0 +1,58 @@
+[tools]
+rust = "1.99.1"
+gh = "latest"
+jq = "latest"
+
+[tasks.build]
+description = "Build the release binary"
+run = "cargo build --release"
+
+[tasks.test]
+description = "Run the tests"
+run = "cargo test"
+
+[tasks.release]
+description = "Tag and push a release; GitHub Actions builds the binaries and publishes the crate"
+usage = 'arg "[version]" help="New version, e.g. 2.1.0. Defaults to the version in Cargo.toml"'
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo="thesurlydev/de"
+
+if [ -n "$(git status --porcelain)" ]; then
+  echo "working tree is not clean" >&2
+  exit 1
+fi
+
+branch="$(git rev-parse --abbrev-ref HEAD)"
+if [ "$branch" != "master" ]; then
+  echo "releases must be cut from master, currently on $branch" >&2
+  exit 1
+fi
+
+current="$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[0].version')"
+version="${usage_version:-$current}"
+tag="v${version}"
+
+if git rev-parse -q --verify "refs/tags/${tag}" >/dev/null; then
+  echo "tag ${tag} already exists" >&2
+  exit 1
+fi
+
+if [ "$version" != "$current" ]; then
+  perl -pi -e "s/^version = \".*\"/version = \"${version}\"/ and \$done++ unless \$done" Cargo.toml
+  cargo check --quiet
+  git add Cargo.toml Cargo.lock
+  git commit -m "chore: release ${tag}"
+fi
+
+cargo test --quiet
+
+git push origin master
+git tag -a "$tag" -m "$tag"
+git push origin "$tag"
+
+echo "Pushed ${tag}. GitHub Actions is building the release:"
+echo "https://github.com/${repo}/releases/tag/${tag}"
+'''
