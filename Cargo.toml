@@ -3,11 +3,11 @@ name = "desktop-entry"
 description = "Create desktop entries for a webpage, making them available via launcher"
 version = "0.5.1"
 edition = "2024"
-authors = ["Shane Witbeck <shane@digitalsanctum.com>"]
-homepage = "https://github.com/digitalsanctum/de"
+authors = ["Shane Witbeck <shane@surly.dev>"]
+homepage = "https://github.com/thesurlydev/de"
 readme = "README.md"
 license-file = "LICENSE"
-repository = "https://github.com/digitalsanctum/de"
+repository = "https://github.com/thesurlydev/de"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
