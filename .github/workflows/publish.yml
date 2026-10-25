@@ -3,49 +3,102 @@ name: Publish
 on:
   push:
     tags:
-      - '*'
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing tag to build and publish
+        required: true
+        type: string
+
+permissions:
+  contents: write
 
 jobs:
-  publish:
-    name: Publish for ${{ matrix.os }}
+  build:
+    name: Build ${{ matrix.asset_name }}
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
-        name: [
-            linux,
-            windows,
-            macos
-        ]
-
         include:
-          - name: linux
-            os: ubuntu-latest
-            artifact_name: de
+          - os: ubuntu-latest
+            binary: desktop-entry
             asset_name: de-linux
-          - name: windows
-            os: windows-latest
-            artifact_name: de.exe
-            asset_name: de-windows
-          - name: macos
-            os: macos-latest
-            artifact_name: de
+          - os: macos-latest
+            binary: desktop-entry
             asset_name: de-macos
-
+          - os: windows-latest
+            binary: desktop-entry.exe
+            asset_name: de-windows
     steps:
-    - uses: actions/checkout@v2
+      - name: Check out the release tag
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
 
-    - uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
 
-    - name: Build
-      run: cargo build --release --locked
+      - name: Build
+        run: cargo build --release --locked
 
-    - name: Upload binaries to release
-      uses: svenstaro/upload-release-action@v1-release
-      with:
-        repo_token: ${{ secrets.GH_TOKEN }}
-        file: target/release/${{ matrix.artifact_name }}
-        asset_name: ${{ matrix.asset_name }}
-        tag: ${{ github.ref }}
+      - name: Stage binary
+        shell: bash
+        run: cp "target/release/${{ matrix.binary }}" "${{ matrix.asset_name }}"
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ matrix.asset_name }}
+          path: ${{ matrix.asset_name }}
+          if-no-files-found: error
+
+  publish:
+    name: Publish release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download binaries
+        uses: actions/download-artifact@v8
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: List binaries
+        run: ls -l dist
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          files: dist/*
+          generate_release_notes: true
+
+  publish-crate:
+    name: Publish to crates.io
+    needs: [build, publish]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the release tag
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Publish crate
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: |
+          set -euo pipefail
+          version="$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[0].version')"
+          status="$(curl -s -o /dev/null -w '%{http_code}' \
+            -H 'User-Agent: de-release-workflow' \
+            "https://crates.io/api/v1/crates/desktop-entry/${version}")"
+          if [ "$status" = "200" ]; then
+            echo "desktop-entry ${version} is already published; skipping"
+            exit 0
+          fi
+          cargo publish --locked
